@@ -48,11 +48,7 @@ public:
 	float percentOutput = 0;
 	double motorSpeed = 0.5;
 
-	/*to be planned:
-	 * 2 motors for arm
-	 * 2 for forklift
-	 * 2 for claw
-	 */
+
 
 	Robot():
 
