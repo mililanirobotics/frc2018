@@ -18,18 +18,22 @@
 #include <Solenoid.h>
 #include <DoubleSolenoid.h>
 #include <Compressor.h>
-
+#include <ctre/Phoenix.h>
+#include <Drive/DifferentialDrive.h>
+#include <Spark.h>
+#include "WPILib.h"
+#include "Drive/DifferentialDrive.h"
 /**
 MASTER CODE
  */
 class Robot : public frc::SampleRobot {
 public:
-	TalonSRX L1Motor; //Left Front
-	TalonSRX L2Motor; //Left Middle
-	TalonSRX L3Motor; //Left Back
-	TalonSRX R1Motor;
-	TalonSRX R2Motor;
-	TalonSRX R3Motor;
+	TalonSRX LFront; //Left Front
+	TalonSRX LMiddle; //Left Middle
+	TalonSRX LBack; //Left Back
+	TalonSRX RFront;
+	TalonSRX RMiddle;
+	TalonSRX RBack;
 	TalonSRX LIntake;
 	TalonSRX RIntake;
 	TalonSRX Lift1;
@@ -45,14 +49,25 @@ public:
 
 	float percentOutput = 0;
 	double motorSpeed = 0.5;
+	int rotation = 4100;
+	const bool FORWARD = true;
+	const bool BACKWARD = false;
+	const bool LEFT = false;
+	const bool RIGHT = true;
+	float power = 0.2;
+
+	ADXRS450_Gyro gyro;
+
+	DigitalInput chooseAuto1;
+	DigitalInput chooseAuto2;
 
 	Robot():
-	L1Motor(10),
-	L2Motor(11),
-	L3Motor(12),
-	R1Motor(13),
-	R2Motor(14),
-	R3Motor(15),
+	LFront(10),
+	LMiddle(11),
+	LBack(12),
+	RFront(13),
+	RMiddle(14),
+	RBack(15),
 	LIntake(16),
 	RIntake(17),
 	Lift1(18),
@@ -60,7 +75,10 @@ public:
 	Arm1(20),
 	Arm2(21),
 	stick1(0),
-	stick2(1)
+	stick2(1),
+	gyro(frc::SPI::kOnboardCS0),
+	chooseAuto1(4),
+	chooseAuto2(5)
 
 	{
 	}
@@ -70,6 +88,209 @@ public:
 
 	}
 
+	void AutoLift(){
+
+		}
+	void AutoDeposit(){
+
+	}
+	void AutoDrive(float inches, bool forward) {
+		//float rotations = inches * 217.51175555937088446065331354019;
+		int ticksperinch = 4100/12.556; //Steps per rot/circumference
+		float ticks = inches * ticksperinch;
+		//sets up the sensor/encoder
+		SetEncoders();
+		float leftAmount = ticks;
+		float rightAmount = -ticks;
+		std::cout << "leftAmount: " << leftAmount << std::endl;
+		if(forward)
+		{
+			leftAmount = leftAmount*-1;
+			rightAmount = rightAmount*-1;
+		}
+		//flipRight -1 for backwards, 1 for forwards
+		//flipLeft -1 for forwards, 1 for backwards
+		//int currentPositionRight= RMiddle.GetEncPosition();
+		//int currentPositionLeft= LMiddle.GetEncPosition();
+		//power = 1;
+		//Set the middle motors to what you need distance-wise and the other motors to the main talon's port #.
+		//sets the motors to run using encoders
+		setFollow();
+		//set to follower because the middle motors are the ones with the encoders
+		RMiddle.Set(ControlMode::Position, rightAmount);
+		std::cout<<"Right Amount:"<<rightAmount<<"\n";
+		std::cout<<"Left Amount:" << leftAmount<<"\n";
+		LMiddle.Set(ControlMode::Position, leftAmount);
+		std::cout<<"after sets\n";
+		int rightEncoder = RMiddle.GetSelectedSensorPosition(0);
+		int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+		int LPrevious = 10000000;
+		int RPrevious = 10000000;
+		while (rightEncoder != RPrevious || leftEncoder != LPrevious) //Wait until old and current values are the same, to make sure the motors are no longer spinnig before continuing.
+		{
+			LPrevious = leftEncoder;
+			RPrevious = rightEncoder;
+			Wait(0.1);
+			rightEncoder = RMiddle.GetSelectedSensorPosition(0);
+			leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+			std::cout<<"In the loop\n";
+			std::cout<< rightEncoder << std::endl;
+
+		}
+		std::cout<<"Out the loop\n";
+//		//decides the behavior of the motors when power is set to 0 (other option is coast)
+		//next step: PLEASE PUT WHILE LOOP HERE, THAT MAKES IT SO THAT WHILE CURRENTPOSITION < SETPOSITION
+		//THE MOTOR KEEPS RUNNING! :)
+		RMiddle.SetNeutralMode(NeutralMode::Brake);
+		LMiddle.SetNeutralMode(NeutralMode::Brake);
+	}
+	void TestMode()
+	{
+		SetEncoders();
+		RMiddle.SetSelectedSensorPosition(0, 0, 10);
+		LMiddle.SetSelectedSensorPosition(0, 0, 10);
+		while(IsEnabled())
+		{
+		Wait(0.25);
+		std::cout << "Right: " << RMiddle.GetSelectedSensorPosition(0) << std::endl;
+		std::cout << "Left: " << LMiddle.GetSelectedSensorPosition(0) << std::endl;
+		}
+	}
+	void AutoTurn(float degrees, bool turn){
+		gyro.Reset();
+		SetEncoders();
+		setFollow();
+		int turnMove = 25;
+		if (turn == LEFT){
+			turnMove = -25;
+		}
+		while(IsAutonomous() && IsEnabled() && gyro.GetAngle() <= degrees)
+		{
+			RMiddle.Set(ControlMode::Position, turnMove);
+			LMiddle.Set(ControlMode::Position, turnMove);
+			std::cout<<gyro.GetAngle()<<std::endl;
+			Wait(0.1);
+		}
+		RMiddle.SetNeutralMode(NeutralMode::Brake);
+		LMiddle.SetNeutralMode(NeutralMode::Brake);
+		//RFront.SetNeutralMode(NeutralMode::Brake); <---- DELETE ME IF WORK WITHOUT
+		//LFront.SetNeutralMode(NeutralMode::Brake);<---- DELETE ME IF WORK WITHOUT
+		//RBack.SetNeutralMode(NeutralMode::Brake);<---- DELETE ME IF WORK WITHOUT
+		//LBack.SetNeutralMode(NeutralMode::Brake);<---- DELETE ME IF WORK WITHOUT
+		//stops robot
+	}
+
+	void AutoRight()
+	{
+		//std::string gameData;
+		//gameData = frc::DriverStation::GetInstance().GetGameSpecificMessage();
+		//if(gameData[0] == 'L')
+		//{
+			//Left Code
+			//Forward 14 feet
+			//AutoDrive(168, FORWARD);
+			//Turn Left 90 degrees
+			//AutoTurnL(90);
+			//Forward 6 INCHES
+			//AutoDrive(6, FORWARD);
+		//}
+		//else
+		//{
+			//Put right auto code here
+			//Forward 4 feet
+		std::cout << "test1" << std::endl;
+		AutoDrive(12.556, 1);
+		std::cout << "test" << std::endl;
+		//Turn Left 90 degrees
+		//AutoTurnL(90);
+		//Forward 13 feet
+		//AutoDrive(156, FORWARD);
+		//Turn Right 90 degrees
+		//AutoTurnR(90);
+		//Forward 3 feet
+		//AutoDrive(36, FORWARD);
+		//}
+	}
+	void AutoLeft(){
+		std::string gameData;
+		gameData = frc::DriverStation::GetInstance().GetGameSpecificMessage();
+		if(gameData[0] == 'L'){
+			//Left Code
+			//Forward 14 feet.
+			AutoDrive(168, FORWARD);
+			//Turn Right That 90 degrees
+			AutoTurn(90, RIGHT);
+			//Forward 6 INCHES
+			AutoDrive(6, FORWARD);
+		} else {
+			//Put right auto code here
+			//Forward 4 feet
+			AutoDrive(48, FORWARD);
+			//Turn Right That 90 degrees
+			AutoTurn(90, RIGHT);
+			//Go forward 13 feet
+			AutoDrive(156, FORWARD);
+			//turn left 90 degrees
+			AutoTurn(90, LEFT);
+			//Forward 3 feet
+			AutoDrive(36, FORWARD);
+		}
+	}
+	void AutoMid(){
+		std::string gameData;
+		gameData = frc::DriverStation::GetInstance().GetGameSpecificMessage();
+		if(gameData[0] == 'L')
+		{
+			//Left Code
+			//Forward 6 feet
+			AutoDrive(72, FORWARD);
+			//turn right 90 degrees
+			AutoTurn(90, RIGHT);
+			//Forward 6 feet
+			AutoDrive(72, FORWARD);
+			//Turn left 90 degrees
+			AutoTurn(90, LEFT);
+			//Forward 6 feet
+			AutoDrive(60, FORWARD);
+		} else {
+			//Put right auto code here
+			//Forward 6 feet
+			AutoDrive(72, FORWARD);
+			//turn left 90 degrees
+			AutoTurn(90, LEFT);
+			//Forward 6 feet
+			AutoDrive(72, FORWARD);
+			//Turn Right to a Right angle
+			AutoTurn(90, RIGHT);
+			//Forward 5 feet
+			AutoDrive(60, FORWARD);
+		}
+	}
+	void autotest()
+	{
+		LMiddle.ConfigSelectedFeedbackSensor(FeedbackDevice::QuadEncoder, 0, 10);
+		LMiddle.SetSelectedSensorPosition(0,0,10);
+		LMiddle.SetSensorPhase(true);
+		RMiddle.ConfigPeakOutputForward(power, 10);
+		LMiddle.ConfigPeakOutputForward(power, 10);
+		RMiddle.ConfigPeakOutputReverse(-power, 10);
+		LMiddle.ConfigPeakOutputReverse(-power, 10);
+		//LMiddle.SetSelectedSensorPosition(0,0,10);
+		//int leftEncoder = LMiddle.GetSensorCollection().GetQuadraturePosition();
+		int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+		LMiddle.Set(ControlMode::PercentOutput, 0.4);
+		RMiddle.Set(ControlMode::PercentOutput, 0.4);
+		LFront.Set(ControlMode::PercentOutput, 0.4);
+		LBack.Set(ControlMode::PercentOutput, 0.4);
+		RFront.Set(ControlMode::PercentOutput, 0.4);
+		RBack.Set(ControlMode::PercentOutput, 0.4);
+		while (IsEnabled())
+		{
+			leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+			Wait(0.1);
+			std::cout << leftEncoder << std::endl;
+		}
+	}
 
 	void Autonomous()
 	{
@@ -79,6 +300,38 @@ public:
 	/*
 	 * Runs the motors with arcade steering.
 	 */
+	void SetEncoders(){
+			//zeroes the sensor position
+			//Encoder must be set before everything else
+			RMiddle.SetSelectedSensorPosition(0, 0, 10);
+			LMiddle.SetSelectedSensorPosition(0, 0, 10);
+			//sets up the sensor/encoder
+			RMiddle.ConfigSelectedFeedbackSensor(FeedbackDevice::QuadEncoder, 0, 10);
+			LMiddle.ConfigSelectedFeedbackSensor(FeedbackDevice::QuadEncoder, 0, 10);
+			//controls the power of the motor. change the first value in configpeakoutput to change the speed the motor runs at
+			RMiddle.ConfigPeakOutputForward(power, 10);
+			LMiddle.ConfigPeakOutputForward(power, 10);
+			RMiddle.ConfigPeakOutputReverse(-power, 10);
+			LMiddle.ConfigPeakOutputReverse(-power, 10);
+			//makes it so that when the motor goes forward, the encoder values increase
+			RMiddle.SetSensorPhase(true);
+			LMiddle.SetSensorPhase(true);
+			//Set PID values
+			//RMiddle.Config_kF(0, 0.0, 10);
+			RMiddle.Config_kP(0, 1, 10);
+			//RMiddle.Config_kI(0, 0, 10);
+			//RMiddle.Config_kD(0, 0, 10);
+			//LMiddle.Config_kF(0, 0, 10);
+			LMiddle.Config_kP(0, 1, 10);
+			//LMiddle.Config_kI(0, 0.0, 10);
+			//LMiddle.Config_kD(0, 0.0, 10);
+		}
+	void setFollow(){
+			RBack.Set(ControlMode::Follower, 13);
+			LBack.Set(ControlMode::Follower, 14);
+			RFront.Set(ControlMode::Follower, 13);
+			LFront.Set(ControlMode::Follower, 14);
+		}
 	void DriverOne()
 	{
 		double LStick1;
@@ -105,28 +358,28 @@ public:
 
 		if (LStick1 >= 0.05 || LStick1 <= -0.05) //If outside of deadzone set motors to stick value
 		{
-			L1Motor.Set(ControlMode::PercentOutput, LStick1 * speedMultiplier);
-			L2Motor.Set(ControlMode::PercentOutput, LStick1 * speedMultiplier);
-			L3Motor.Set(ControlMode::PercentOutput, LStick1 * speedMultiplier);
+			LFront.Set(ControlMode::PercentOutput, LStick1 * speedMultiplier);
+			LMiddle.Set(ControlMode::PercentOutput, LStick1 * speedMultiplier);
+			LBack.Set(ControlMode::PercentOutput, LStick1 * speedMultiplier);
 		}
 		else //If inside deadzone set motors to 0
 		{
-			L1Motor.Set(ControlMode::PercentOutput, 0);
-			L2Motor.Set(ControlMode::PercentOutput, 0);
-			L3Motor.Set(ControlMode::PercentOutput, 0);
+			LFront.Set(ControlMode::PercentOutput, 0);
+			LMiddle.Set(ControlMode::PercentOutput, 0);
+			LBack.Set(ControlMode::PercentOutput, 0);
 		}
 
 		if (RStick1 >= 0.05 || RStick1 <= -0.05) //Same for right motors
 		{
-			R1Motor.Set(ControlMode::PercentOutput, RStick1 * speedMultiplier);
-			R2Motor.Set(ControlMode::PercentOutput, RStick1 * speedMultiplier);
-			R3Motor.Set(ControlMode::PercentOutput, RStick1 * speedMultiplier);
+			RFront.Set(ControlMode::PercentOutput, RStick1 * speedMultiplier);
+			RMiddle.Set(ControlMode::PercentOutput, RStick1 * speedMultiplier);
+			RBack.Set(ControlMode::PercentOutput, RStick1 * speedMultiplier);
 		}
 		else //The same as left, but for right
 		{
-			R1Motor.Set(ControlMode::PercentOutput, 0);
-			R2Motor.Set(ControlMode::PercentOutput, 0);
-			R3Motor.Set(ControlMode::PercentOutput, 0);
+			RFront.Set(ControlMode::PercentOutput, 0);
+			RMiddle.Set(ControlMode::PercentOutput, 0);
+			RBack.Set(ControlMode::PercentOutput, 0);
 		}
 
 
@@ -231,7 +484,7 @@ public:
 					DriverTwo();
 					if(stick1.GetRawButton(5) && stick1.GetRawButton(6) && stick1.GetRawButton(7) && stick1.GetRawButton(8))
 					{
-						//L2Motor.Set(ControlMode::PercentOutput, 0.3);
+						//LMiddle.Set(ControlMode::PercentOutput, 0.3);
 						testcontrol = true;
 
 					}
@@ -248,10 +501,10 @@ public:
 			while (testModeOn) //Test mode code
 				{
 					Wait(0.1);
-					//L3Motor.Set(ControlMode::PercentOutput, 0.3);
+					//LBack.Set(ControlMode::PercentOutput, 0.3);
 					if(stick1.GetRawButton(5) && stick1.GetRawButton(6) && stick1.GetRawButton(7) && stick1.GetRawButton(8))
 					{
-						//L2Motor.Set(ControlMode::PercentOutput, 0.3);
+						//LMiddle.Set(ControlMode::PercentOutput, 0.3);
 						testcontrol = true;
 					}
 					else
@@ -335,12 +588,12 @@ public:
 					}
 
 
-					runMotor(1,  L1Motor);
-					runMotor(2,  L2Motor);
-					runMotor(3,  L3Motor);
-					runMotor(4,  R1Motor);
-					runMotor(5,  R2Motor);
-					runMotor(6,  R3Motor);
+					runMotor(1,  LFront);
+					runMotor(2,  LMiddle);
+					runMotor(3,  LBack);
+					runMotor(4,  RFront);
+					runMotor(5,  RMiddle);
+					runMotor(6,  RBack);
 					runMotor(7,  Arm1);
 					runMotor(8,  Arm2);
 					runMotor(9,  Lift1);
