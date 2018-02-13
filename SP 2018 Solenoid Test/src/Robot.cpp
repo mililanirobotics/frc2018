@@ -53,7 +53,8 @@ public:
 		L1Motor(10),
 		L2Motor(11),
 		L3Motor(12),
-		R1Motor(13),
+		R1Motor(13
+				),
 		R2Motor(14),
 		R3Motor(15),
 		LIntake(16),

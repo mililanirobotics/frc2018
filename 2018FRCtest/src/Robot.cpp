@@ -38,6 +38,7 @@ public:
 	Joystick gamepad1;
 	float percentOutput = 0;
 	double motorSpeed = 0.5;
+	DigitalInput opti;
 
 	/*to be planned:
 	 * 2 motors for arm
@@ -61,7 +62,8 @@ public:
 	Arm2(21),
 	Claw1(22),
 	Claw2(23),
-	gamepad1(0)
+	gamepad1(0),
+	opti(2)
 	{
 	}
 
@@ -71,8 +73,11 @@ public:
 
 	void Autonomous()
 	{
-		Wait(1);
-		std::cout<< "woohoo"<<std::endl;
+		while (IsAutonomous() && IsEnabled())
+		{
+			Wait(1);
+			std::cout<< opti.Get()<<std::endl;
+		}
 	}
 
 	void runMotor(int button, TalonSRX& motor)

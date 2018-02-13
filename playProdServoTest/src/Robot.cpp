@@ -47,7 +47,7 @@ public:
 	void OperatorControl() override
 	{
 		double LservoPos = 0;
-		double RservoPos = 1;
+		double RservoPos = 0;
 		while(IsOperatorControl() &&  IsEnabled())
 		{
 			Wait(0.1);
@@ -56,7 +56,7 @@ public:
 			if(gamepad1.GetRawAxis(1) >= .1)
 			{
 				LservoPos += 0.1;
-				RservoPos -= 0.1;
+				RservoPos += 0.1;
 				LServo.Set(LservoPos);
 				RServo.Set(RservoPos);
 				std::cout<<"L Servo:"<<LservoPos<<std::endl;
@@ -65,7 +65,7 @@ public:
 			else if(gamepad1.GetRawAxis(1) <= -0.1)
 			{
 				LservoPos -= 0.1;
-				RservoPos += 0.1;
+				RservoPos -= 0.1;
 				LServo.Set(LservoPos);
 				RServo.Set(RservoPos);
 			}
