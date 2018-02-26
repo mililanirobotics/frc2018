@@ -45,7 +45,8 @@ public:
 
 	void RobotInit()
 	{
-
+		Arm1.SetNeutralMode(NeutralMode::Brake);
+		Arm2.SetNeutralMode(NeutralMode::Brake);
 	}
 
 

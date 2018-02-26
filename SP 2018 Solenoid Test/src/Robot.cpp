@@ -158,11 +158,11 @@ public:
 			}
 
 
-			//Solenoids to open and close claw are controlled by bumers on gamepad 2
+			//Solenoids to open and close claw are controlled by bumpers on gamepad 2
 			if(stick2.GetRawButton(6)) //Open Claw
 			{
-				solenoid->Set(DoubleSolenoid::Value::kForward); //Test single solenoid
-				solenoid2->Set(DoubleSolenoid::Value::kForward); //Test double solenoid
+				solenoid->Set(DoubleSolenoid::Value::kForward); //Test 1st solenoid
+				solenoid2->Set(DoubleSolenoid::Value::kForward); //Test 2nd solenoid
 			}
 			else if(stick2.GetRawButton(5))
 			{
