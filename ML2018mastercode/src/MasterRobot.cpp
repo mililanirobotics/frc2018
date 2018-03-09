@@ -201,33 +201,7 @@ public:
 	}
 	void AutoTurn(float degrees, bool turn)
 	{
-		gyro.Reset();
-		SetEncoders();
-		setFollow();
-		/*
-		int turnMove = 25;
-		if (turn == LEFT)
-		{
-			turnMove = -25;
-		}
-		*/
-		//seperate turn
 
-		while(turn == LEFT && gyro.GetAngle() >= degrees)
-		{
-			RMiddle.Set(ControlMode::PercentOutput, -0.5);
-			LMiddle.Set(ControlMode::PercentOutput, -0.5);
-		}
-		while(turn == RIGHT && gyro.GetAngle() <= degrees)
-		{
-			RMiddle.Set(ControlMode::PercentOutput, 0.5);
-			LMiddle.Set(ControlMode::PercentOutput, 0.5);
-		}
-		Wait(0.1);
-		std::cout<<"Gyro:"<<gyro.GetAngle()<<std::endl;
-		RMiddle.Set(ControlMode::PercentOutput, 0);
-		LMiddle.Set(ControlMode::PercentOutput, 0);
-		//stops robot
 	}
 
 	void AutoRight()
