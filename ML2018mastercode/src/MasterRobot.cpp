@@ -82,8 +82,10 @@ public:
 	Relay lightBG;
 	Relay lightR;
 	int lightTimer = 0;
-	//DoubleSolenoid *hang = new DoubleSolenoid(0,1);
-	//DoubleSolenoid *hang2 = new DoubleSolenoid(2, 3);
+	Solenoid *hang = new Solenoid(4);
+	Solenoid *hang2 = new Solenoid(5);
+	//goes from default to not default
+	DigitalInput liftswitch;
 
 	Robot():
 	LFront(10),
@@ -107,7 +109,8 @@ public:
 	switch2(1),
 	opti(2),
 	lightBG(0),
-	lightR(1)
+	lightR(1),
+	liftswitch(3)
 
 	{
 	}
@@ -181,7 +184,6 @@ public:
 		}
 		std::cout<<"Out the loop\n";
 //		//decides the behavior of the motors when power is set to 0 (other option is coast)
-
 		RMiddle.SetNeutralMode(NeutralMode::Brake);
 		LMiddle.SetNeutralMode(NeutralMode::Brake);
 	}
@@ -530,10 +532,11 @@ public:
 	}
 	void DriverTwo()
 	{
-		double LStick2;
+		//double LStick2;
 		//double RStick2;
-		LStick2 = stick2.GetRawAxis(1);
+		//LStick2 = stick2.GetRawAxis(1);
 		//RStick2 = stick2.GetRawAxis(3);
+
 
 		double DPad = stick2.GetPOV(0);
 		if (DPad == 0)
@@ -575,12 +578,12 @@ public:
 				}
 			}
 		}
-		if(stick2.GetRawButton(5))
+		if(stick2.GetRawButton(5)) //left bumper
 		{
 			claw->Set(DoubleSolenoid::Value::kForward);
 			claw2->Set(DoubleSolenoid::Value::kForward);
 		}
-		else if(stick2.GetRawButton(6))
+		else if(stick2.GetRawButton(6)) //right bumper
 		{
 			claw->Set(DoubleSolenoid::Value::kReverse);
 			claw2->Set(DoubleSolenoid::Value::kReverse);
@@ -611,17 +614,20 @@ public:
 			RIntake.Set(ControlMode::PercentOutput, 0);
 			//Set to 0 if deadzone in effect
 		}
-		if (stick2.GetRawButton(9))
+		if ((stick2.GetRawButton(7)) && (liftswitch.Get() == 0))
 		{
-			Lift1.Set(ControlMode::PercentOutput, 1);
-			Lift2.Set(ControlMode::PercentOutput, 1);
-			//std::cout<< "lift time"<<std::endl;
-
+			Lift1.Set(ControlMode::PercentOutput, 0.7);
+			Lift2.Set(ControlMode::PercentOutput, 0.7);
 		}
-		else if (stick2.GetRawButton(10))
+		else
 		{
-			Lift1.Set(ControlMode::PercentOutput, -1);
-			Lift2.Set(ControlMode::PercentOutput, -1);
+			Lift1.Set(ControlMode::PercentOutput, 0);
+			Lift2.Set(ControlMode::PercentOutput, 0);
+		}
+		if (stick2.GetRawButton(8))
+		{
+			Lift1.Set(ControlMode::PercentOutput, -0.7);
+			Lift2.Set(ControlMode::PercentOutput, -0.7);
 			//std::cout<< "lift time"<<std::endl;
 		}
 		else
@@ -660,6 +666,11 @@ public:
 			Arm2.Set(ControlMode::PercentOutput, 0);
 		}
 
+		if (stick2.GetRawButton(7)&& stick2.GetRawButton(8))
+		{
+			hang->Set(true);
+			hang2->Set(true);
+		}
 		//optical sensor mode
 //		if (stick2.GetRawButton(3) && positionNumber <2)
 //		{
@@ -759,6 +770,9 @@ public:
 		if (stick1.GetRawButton(button) == 1) //1 = True, so == 1 is not needed -Shane
 		{
 			motor.Set(ControlMode::PercentOutput, percentOutput);
+			std::cout << "Right: " << motor.GetSelectedSensorPosition(0) << std::endl;
+			std::cout << "Left: " << motor.GetSelectedSensorPosition(0) << std::endl;
+			Wait(0.05);
 		}
 		else
 		{
