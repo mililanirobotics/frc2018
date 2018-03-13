@@ -50,13 +50,13 @@ public:
 
 
 	float percentOutput = 0.7;
-	double motorSpeed = 0.5;
+	//double motorSpeed = 0.5;
 	int rotation = 4100;
 	const bool FORWARD = true;
 	const bool BACKWARD = false;
 	const bool LEFT = false;
 	const bool RIGHT = true;
-	float power = 0.6;
+	float power = 0.5;
 	bool uppressed = false;
 	bool downpressed = false;
 
@@ -138,10 +138,24 @@ public:
 		claw2->Set(DoubleSolenoid::Value::kForward);
 		positionNumber = 1;
 	}
+	void ManualAuto()
+	{
+		SetEncoders();
+		while (IsEnabled())
+		{
+			Wait(0.1);
+			int rightEncoder = RMiddle.GetSelectedSensorPosition(0);
+			int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+
+			std::cout<< rightEncoder << std::endl;
+			std::cout<< leftEncoder << std::endl;
+		}
+	}
 	void AutoDrive(float inches, bool forward)
 	{
+		power = 0.2;
 		//float rotations = inches * 217.51175555937088446065331354019;
-		int ticksperinch = 4100/12.556; //Steps per rot/circumference
+		int ticksperinch = 4100/18.84; //Steps per rot/circumference
 		float ticks = inches * ticksperinch;
 		//sets up the sensor/encoder
 		SetEncoders();
@@ -179,7 +193,8 @@ public:
 			rightEncoder = RMiddle.GetSelectedSensorPosition(0);
 			leftEncoder = LMiddle.GetSelectedSensorPosition(0);
 			//std::cout<<"In the loop\n";
-			//std::cout<< rightEncoder << std::endl;
+			std::cout<< rightEncoder << std::endl;
+			std::cout<< leftEncoder << std::endl;
 
 		}
 		std::cout<<"Out the loop\n";
@@ -199,8 +214,39 @@ public:
 			std::cout << "Left: " << LMiddle.GetSelectedSensorPosition(0) << std::endl;
 		}
 	}
-	void AutoTurn(float degrees, bool turn)
+	void AutoTurn(bool turn)
 	{
+			power = 0.7;
+			//gyro.Reset();
+			SetEncoders();
+			setFollow();
+			//does the multiply of the surface of the radius
+			float inche = 32.7 * 4100;
+			float inches = inche / 18.84; //Steps per rot/circumference
+			if (turn == LEFT)
+			{
+				inches = -1 * inches;
+			}
+			RMiddle.Set(ControlMode::Position, inches);
+			LMiddle.Set(ControlMode::Position, inches);
+			int rightEncoder = RMiddle.GetSelectedSensorPosition(0);
+			int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+			int LPrevious = 10000000;
+			int RPrevious = 10000000;
+			std::cout<< inches << std::endl;
+			while (rightEncoder != RPrevious && leftEncoder != LPrevious) //Wait until old and current values are the same, to make sure the motors are no longer spinnig before continuing.
+			{
+				LPrevious = leftEncoder;
+				RPrevious = rightEncoder;
+				Wait(0.01);
+				rightEncoder = RMiddle.GetSelectedSensorPosition(0);
+				leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+				//std::cout<<"In the loop\n";
+				std::cout<< rightEncoder << std::endl;
+				std::cout<< leftEncoder << std::endl;
+			}
+			RMiddle.SetNeutralMode(NeutralMode::Brake);
+			LMiddle.SetNeutralMode(NeutralMode::Brake);
 
 	}
 
@@ -215,7 +261,7 @@ public:
 			//Forward 12 feet
 			AutoDrive(144, FORWARD);
 			//Turn Left 90 degrees
-			AutoTurn(-75, LEFT);
+			AutoTurn(LEFT);
 			//Forward 6 INCHES
 			AutoDrive(6, FORWARD);
 		}
@@ -225,11 +271,11 @@ public:
 			//Forward 4 feet
 			AutoDrive(48, FORWARD);
 			//Turn Left 90 degrees
-			AutoTurn(-75, LEFT);
+			AutoTurn(LEFT);
 			//Forward 13 feet
 			AutoDrive(156, FORWARD);
 			//Turn Right 90 degrees
-			AutoTurn(75, RIGHT);
+			AutoTurn(RIGHT);
 			//Forward 6 feet
 			AutoDrive(72, FORWARD);
 		}
@@ -246,7 +292,7 @@ public:
 			std::cout<< "scream every day left left"<<std::endl;
 			AutoDrive(144, FORWARD);
 			//Turn Right That 90 degrees(75 is the new 90)
-			AutoTurn(75, RIGHT);
+			AutoTurn(RIGHT);
 			//Forward 6 INCHES
 			AutoDrive(6, FORWARD);
 		}
@@ -256,11 +302,11 @@ public:
 			//Forward 4 feet
 			AutoDrive(48, FORWARD);
 			//Turn Right That 90 degrees
-			AutoTurn(75, RIGHT);
+			AutoTurn(RIGHT);
 			//Go forward 13 feet
 			AutoDrive(156, FORWARD);
 			//turn left 90 degrees
-			AutoTurn(-75, LEFT);
+			AutoTurn(LEFT);
 			//Forward 6 feet
 			AutoDrive(72, FORWARD);
 		}
@@ -269,19 +315,20 @@ public:
 	{
 		std::string gameData;
 		gameData = frc::DriverStation::GetInstance().GetGameSpecificMessage();
-		if(gameData[0] == 'L')
+		if(gameData[0] == 'R')
 		{
 			//Left Code
 			//Forward 6 feet
-			AutoDrive(72, FORWARD);
+
+			AutoDrive(72, BACKWARD);
 			//turn right 90 degrees
-			AutoTurn(75, RIGHT);
+			AutoTurn(RIGHT);
 			//Forward 6 feet
-			AutoDrive(72, FORWARD);
+			//AutoDrive(72, FORWARD);
 			//Turn left 90 degrees
-			AutoTurn(-75, LEFT);
+			//AutoTurn(LEFT);
 			//Forward 6 feet
-			AutoDrive(60, FORWARD);
+			//AutoDrive(60, FORWARD);
 		}
 		else
 		{
@@ -289,11 +336,11 @@ public:
 			//Forward 6 feet
 			AutoDrive(72, FORWARD);
 			//turn left 90 degrees
-			AutoTurn(-75, LEFT);
+			AutoTurn(LEFT);
 			//Forward 6 feet
 			AutoDrive(72, FORWARD);
 			//Turn Right to a Right angle
-			AutoTurn(75, RIGHT);
+			AutoTurn(RIGHT);
 			//Forward 5 feet
 			AutoDrive(60, FORWARD);
 		}
@@ -310,12 +357,12 @@ public:
 		//LMiddle.SetSelectedSensorPosition(0,0,10);
 		//int leftEncoder = LMiddle.GetSensorCollection().GetQuadraturePosition();
 		int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
-		LMiddle.Set(ControlMode::PercentOutput, 0.4);
-		RMiddle.Set(ControlMode::PercentOutput, 0.4);
-		LFront.Set(ControlMode::PercentOutput, 0.4);
-		LBack.Set(ControlMode::PercentOutput, 0.4);
-		RFront.Set(ControlMode::PercentOutput, 0.4);
-		RBack.Set(ControlMode::PercentOutput, 0.4);
+		LMiddle.Set(ControlMode::PercentOutput, 0.2);
+		RMiddle.Set(ControlMode::PercentOutput, 0.2);
+		LFront.Set(ControlMode::PercentOutput, 0.2);
+		LBack.Set(ControlMode::PercentOutput, 0.2);
+		RFront.Set(ControlMode::PercentOutput, 0.2);
+		RBack.Set(ControlMode::PercentOutput, 0.2);
 		while (IsEnabled())
 		{
 			leftEncoder = LMiddle.GetSelectedSensorPosition(0);
@@ -383,11 +430,11 @@ public:
 		LMiddle.SetSensorPhase(true);
 		//Set PID values
 		//RMiddle.Config_kF(0, 0.0, 10);
-		RMiddle.Config_kP(0, 0.6, 10);
+		RMiddle.Config_kP(0, 0.1, 10);
 		//RMiddle.Config_kI(0, 0, 10);
 		//RMiddle.Config_kD(0, 0, 10);
 		//LMiddle.Config_kF(0, 0, 10);
-		LMiddle.Config_kP(0, 0.6, 10);
+		LMiddle.Config_kP(0, 0.1, 10);
 		//LMiddle.Config_kI(0, 0.0, 10);
 		//LMiddle.Config_kD(0, 0.0, 10);
 	}
