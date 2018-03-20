@@ -41,6 +41,8 @@ public:
 	TalonSRX Arm1;
 	TalonSRX Arm2;
 
+	Encoder encoder;
+
 	Joystick stick1;
 	Joystick stick2;
 
@@ -100,6 +102,7 @@ public:
 	Lift2(19),
 	Arm1(20),
 	Arm2(21),
+	encoder(1, 2, false, Encoder::k4X),
 	stick1(0),
 	stick2(1),
 	gyro(frc::SPI::kOnboardCS0),
@@ -644,19 +647,39 @@ public:
 		}
 		if ((stick2.GetRawButton(7)) && (liftswitch.Get() == 0))
 		{
-			Lift1.Set(ControlMode::PercentOutput, 0.7);
-			Lift2.Set(ControlMode::PercentOutput, 0.7);
-		}
-		else
-		{
-			Lift1.Set(ControlMode::PercentOutput, 0);
-			Lift2.Set(ControlMode::PercentOutput, 0);
+			if(encoder.GetDistance() < 1000) //Lower 50%
+				{
+					RBack.Set(ControlMode::PercentOutput, 0.7);
+					RMiddle.Set(ControlMode::PercentOutput, 0.7);
+				}
+				else if(encoder.GetDistance() >= 1000 && encoder.GetDistance() < 1500) //50% to 75%
+				{
+					RBack.Set(ControlMode::PercentOutput, 0.4);
+					RMiddle.Set(ControlMode::PercentOutput, 0.4);
+				}
+				else
+				{
+					RBack.Set(ControlMode::PercentOutput, 0.2);
+					RMiddle.Set(ControlMode::PercentOutput, 0.2);
+				}
 		}
 		if (stick2.GetRawButton(8))
 		{
-			Lift1.Set(ControlMode::PercentOutput, -0.7);
-			Lift2.Set(ControlMode::PercentOutput, -0.7);
-			//std::cout<< "lift time"<<std::endl;
+			if(encoder.GetDistance() < 1000) //Lower 50%
+				{
+					RBack.Set(ControlMode::PercentOutput, -0.2);
+					RMiddle.Set(ControlMode::PercentOutput, -0.2);
+				}
+				else if(encoder.GetDistance() >= 1000 && encoder.GetDistance() < 1500) //50% to 75%
+				{
+					RBack.Set(ControlMode::PercentOutput, -0.4);
+					RMiddle.Set(ControlMode::PercentOutput, -0.4);
+				}
+				else
+				{
+					RBack.Set(ControlMode::PercentOutput, -0.7);
+					RMiddle.Set(ControlMode::PercentOutput, -0.7);
+				}
 		}
 		else
 		{
