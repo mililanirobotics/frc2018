@@ -49,7 +49,7 @@ public:
 
 
 
-	float percentOutput = 0.7;
+	float percentOutput = 1;
 	//double motorSpeed = 0.5;
 	int rotation = 4100;
 	const bool FORWARD = true;
@@ -123,7 +123,7 @@ public:
 
 	void AutoDeposit()
 	{
-		while ((opti.Get() == 1) && IsAutonomous() && IsEnabled())
+		while (opti.Get() && IsAutonomous() && IsEnabled()) //changed (opti.Get() == 1) to opti.Get()
 		{
 			armPower = -0.5;
 			Arm1.Set(ControlMode::PercentOutput, armPower);
@@ -147,8 +147,8 @@ public:
 			int rightEncoder = RMiddle.GetSelectedSensorPosition(0);
 			int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
 
-			std::cout<< rightEncoder << std::endl;
-			std::cout<< leftEncoder << std::endl;
+			std::cout << rightEncoder << std::endl;
+			std::cout << leftEncoder << std::endl;
 		}
 	}
 	void AutoDrive(float inches, bool forward)
@@ -193,8 +193,8 @@ public:
 			rightEncoder = RMiddle.GetSelectedSensorPosition(0);
 			leftEncoder = LMiddle.GetSelectedSensorPosition(0);
 			//std::cout<<"In the loop\n";
-			std::cout<< rightEncoder << std::endl;
-			std::cout<< leftEncoder << std::endl;
+			//std::cout<< rightEncoder << std::endl;
+			//std::cout<< leftEncoder << std::endl;
 
 		}
 		std::cout<<"Out the loop\n";
@@ -214,38 +214,67 @@ public:
 			std::cout << "Left: " << LMiddle.GetSelectedSensorPosition(0) << std::endl;
 		}
 	}
-	void AutoTurn(bool turn)
+	void AutoTurnLeft()
 	{
-			power = 0.7;
-			//gyro.Reset();
-			SetEncoders();
+			power = 1; //power needs to be set higher here than for autodrive. it takes more power to turn
+
+			SetEncoders(); //sets encoders to 0
 			setFollow();
 			//does the multiply of the surface of the radius
-			float inche = 32.7 * 4100;
-			float inches = inche / 18.84; //Steps per rot/circumference
-			if (turn == LEFT)
-			{
-				inches = -1 * inches;
-			}
+			float inche = 28.0 * -4100;
+			int inches = inche / 18.84; //Steps per rot/circumference
 			RMiddle.Set(ControlMode::Position, inches);
 			LMiddle.Set(ControlMode::Position, inches);
-			int rightEncoder = RMiddle.GetSelectedSensorPosition(0);
+
+			int rightEncoder = RMiddle.GetSelectedSensorPosition(0); //sets up variable for tracking current position
 			int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
-			int LPrevious = 10000000;
+			int LPrevious = 10000000; //placeholder number so it always enters the while loop below
 			int RPrevious = 10000000;
 			std::cout<< inches << std::endl;
 			while (rightEncoder != RPrevious && leftEncoder != LPrevious) //Wait until old and current values are the same, to make sure the motors are no longer spinnig before continuing.
 			{
 				LPrevious = leftEncoder;
 				RPrevious = rightEncoder;
-				Wait(0.01);
-				rightEncoder = RMiddle.GetSelectedSensorPosition(0);
+				Wait(0.01); //makes it so that the prints below do not cause the robot to crash.
+				rightEncoder = RMiddle.GetSelectedSensorPosition(0); //updates variable for the encoders current position
 				leftEncoder = LMiddle.GetSelectedSensorPosition(0);
 				//std::cout<<"In the loop\n";
-				std::cout<< rightEncoder << std::endl;
+				std::cout<< rightEncoder << std::endl; // continually prints current encoder position
 				std::cout<< leftEncoder << std::endl;
 			}
-			RMiddle.SetNeutralMode(NeutralMode::Brake);
+			RMiddle.SetNeutralMode(NeutralMode::Brake); //makes it so that the wheels stop moving immediately aka they don't coast
+			LMiddle.SetNeutralMode(NeutralMode::Brake);
+
+	}
+	void AutoTurnRight()
+	{
+			power = 1; //power needs to be set higher here than for autodrive. it takes more power to turn
+
+			SetEncoders(); //sets encoders to 0
+			setFollow();
+			//does the multiply of the surface of the radius
+			float inche = 28.0 * 4100;
+			int inches = inche / 18.84; //Steps per rot/circumference
+			RMiddle.Set(ControlMode::Position, inches);
+			LMiddle.Set(ControlMode::Position, inches);
+
+			int rightEncoder = RMiddle.GetSelectedSensorPosition(0); //sets up variable for tracking current position
+			int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+			int LPrevious = 10000000; //placeholder number so it always enters the while loop below
+			int RPrevious = 10000000;
+			std::cout<< inches << std::endl;
+			while (rightEncoder != RPrevious && leftEncoder != LPrevious) //Wait until old and current values are the same, to make sure the motors are no longer spinnig before continuing.
+			{
+				LPrevious = leftEncoder;
+				RPrevious = rightEncoder;
+				Wait(0.01); //makes it so that the prints below do not cause the robot to crash.
+				rightEncoder = RMiddle.GetSelectedSensorPosition(0); //updates variable for the encoders current position
+				leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+				//std::cout<<"In the loop\n";
+				std::cout<< rightEncoder << std::endl; // continually prints current encoder position
+				std::cout<< leftEncoder << std::endl;
+			}
+			RMiddle.SetNeutralMode(NeutralMode::Brake); //makes it so that the wheels stop moving immediately aka they don't coast
 			LMiddle.SetNeutralMode(NeutralMode::Brake);
 
 	}
@@ -253,31 +282,37 @@ public:
 	void AutoRight()
 	{
 		std::string gameData;
-		gameData = frc::DriverStation::GetInstance().GetGameSpecificMessage();
-		std::cout<< gameData<< std::endl;
+		gameData = frc::DriverStation::GetInstance().GetGameSpecificMessage(); //fetches the gamedata input from driver station
+		std::cout<< gameData<< std::endl; //prints the gamedata in the console just as assurance
 		if(gameData[0] == 'R')
 		{
-			//Right Code
-			//Forward 12 feet
-			AutoDrive(144, FORWARD);
+			//Right Code (placing cube at the end of the switch straight ahead)
+			//Forward 12 feet (set to 144 later)
+			AutoDrive(14, BACKWARD);
+			std::cout<<"forward"<<std::endl;
 			//Turn Left 90 degrees
-			AutoTurn(LEFT);
+			AutoTurnLeft();
+			std::cout<<"turning left"<<std::endl;
+			Wait(2);
 			//Forward 6 INCHES
-			AutoDrive(6, FORWARD);
+			AutoDrive(6, BACKWARD);
+			std::cout<<"more forward"<<std::endl;
 		}
 		else
 		{
-			//Put left auto code here
-			//Forward 4 feet
-			AutoDrive(48, FORWARD);
+			//Left code (places cube on the opposite end of the switch)
+			//Forward 4 feet (48 in)
+			AutoDrive(18, BACKWARD);
 			//Turn Left 90 degrees
-			AutoTurn(LEFT);
-			//Forward 13 feet
-			AutoDrive(156, FORWARD);
+			AutoTurnLeft();
+			Wait(2);
+			//Forward 13 feet (156 in)
+			AutoDrive(12, BACKWARD);
 			//Turn Right 90 degrees
-			AutoTurn(RIGHT);
-			//Forward 6 feet
-			AutoDrive(72, FORWARD);
+			AutoTurnRight();
+			Wait(2);
+			//Forward 6 feet (72in)
+			AutoDrive(22, BACKWARD);
 		}
 	}
 	void AutoLeft()
@@ -287,28 +322,31 @@ public:
 		std::cout<< "scream auto left" <<std::endl;
 		if(gameData[0] == 'L')
 		{
-			//Left Code
-			//Forward 12 feet.
-			std::cout<< "scream every day left left"<<std::endl;
-			AutoDrive(144, FORWARD);
+			//Left Code (places cube on the side of the switch straight ahead)
+			//Forward 12 feet. (144 in)
+			//std::cout<< "scream every day left left"<<std::endl;
+			AutoDrive(14, BACKWARD);
 			//Turn Right That 90 degrees(75 is the new 90)
-			AutoTurn(RIGHT);
+			AutoTurnRight();
+			Wait(2);
 			//Forward 6 INCHES
-			AutoDrive(6, FORWARD);
+			AutoDrive(6, BACKWARD);
 		}
 		else
 		{
-			//Put right auto code here
-			//Forward 4 feet
-			AutoDrive(48, FORWARD);
+			//Right auto code (places cube on the opposite end of the switch from where the robot is)
+			//Forward 4 feet (48 in)
+			AutoDrive(48, BACKWARD);
 			//Turn Right That 90 degrees
-			AutoTurn(RIGHT);
-			//Go forward 13 feet
-			AutoDrive(156, FORWARD);
+			AutoTurnRight();
+			Wait(2);
+			//Go forward 13 feet (156 in)
+			AutoDrive(16, BACKWARD);
 			//turn left 90 degrees
-			AutoTurn(LEFT);
-			//Forward 6 feet
-			AutoDrive(72, FORWARD);
+			AutoTurnLeft();
+			Wait(2);
+			//Forward 6 feet (72 in)
+			AutoDrive(22, BACKWARD);
 		}
 	}
 	void AutoMid()
@@ -318,31 +356,34 @@ public:
 		if(gameData[0] == 'R')
 		{
 			//Left Code
-			//Forward 6 feet
-
-			AutoDrive(72, BACKWARD);
+			//Forward 6 feet (63 in)
+			AutoDrive(63, BACKWARD);
 			//turn right 90 degrees
-			AutoTurn(RIGHT);
-			//Forward 6 feet
-			//AutoDrive(72, FORWARD);
+			AutoTurnRight();
+			//Wait(2);
+			//Forward 6 feet (??in 75)
+			//AutoDrive(25, BACKWARD);
 			//Turn left 90 degrees
-			//AutoTurn(LEFT);
-			//Forward 6 feet
-			//AutoDrive(60, FORWARD);
+			//AutoTurnLeft();
+			//Wait(2);
+			//Forward 6 feet (60 in)
+			//AutoDrive(20, BACKWARD);
 		}
 		else
 		{
 			//Put right auto code here
-			//Forward 6 feet
-			AutoDrive(72, FORWARD);
+			//Forward 6 feet (72 in)
+			AutoDrive(22, BACKWARD);
 			//turn left 90 degrees
-			AutoTurn(LEFT);
-			//Forward 6 feet
-			AutoDrive(72, FORWARD);
+			AutoTurnLeft();
+			Wait(2);
+			//Forward 6 feet (72 in)
+			AutoDrive(32, BACKWARD);
 			//Turn Right to a Right angle
-			AutoTurn(RIGHT);
-			//Forward 5 feet
-			AutoDrive(60, FORWARD);
+			AutoTurnRight();
+			Wait(2);
+			//Forward 5 feet (60 in)
+			AutoDrive(20, BACKWARD);
 		}
 	}
 	void autotest()
@@ -356,7 +397,7 @@ public:
 		LMiddle.ConfigPeakOutputReverse(-power, 10);
 		//LMiddle.SetSelectedSensorPosition(0,0,10);
 		//int leftEncoder = LMiddle.GetSensorCollection().GetQuadraturePosition();
-		int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+		//int leftEncoder = LMiddle.GetSelectedSensorPosition(0);
 		LMiddle.Set(ControlMode::PercentOutput, 0.2);
 		RMiddle.Set(ControlMode::PercentOutput, 0.2);
 		LFront.Set(ControlMode::PercentOutput, 0.2);
@@ -365,7 +406,7 @@ public:
 		RBack.Set(ControlMode::PercentOutput, 0.2);
 		while (IsEnabled())
 		{
-			leftEncoder = LMiddle.GetSelectedSensorPosition(0);
+			//leftEncoder = LMiddle.GetSelectedSensorPosition(0);
 			Wait(0.1);
 
 		}
@@ -373,43 +414,35 @@ public:
 
 	void Autonomous()
 	{
-		/*
-		gyro.Reset();
-		while(IsEnabled() && IsAutonomous())
-		{
-			std::cout<<"Gyro:"<<gyro.GetAngle()<<std::endl;
-			Wait(0.1);
-		}
-		*/
+
 		//from left to right: 00, 01, 11
 		Arm1.SetNeutralMode(NeutralMode::Brake);
 		Arm2.SetNeutralMode(NeutralMode::Brake);
-		if (chooseAuto1.Get() == 0 && chooseAuto2.Get() == 0)
+		if (chooseAuto1.Get() == 0 && chooseAuto2.Get() == 0) //both switches plugged
 		{
 			lightBG.Set(Relay::kForward);
 			lightR.Set(Relay::kOff);
 			AutoLeft();
-			AutoDeposit();
+			//AutoDeposit();
+			std::cout<< "running left code"<<std::endl;
 		}
-		else if (chooseAuto1.Get() == 1 && chooseAuto2.Get() == 1)
+		else if (chooseAuto1.Get() == 1 && chooseAuto2.Get() == 1) //both switches unplugged
 		{
 			lightBG.Set(Relay::kOff);
 			lightR.Set(Relay::kOn);
 			AutoRight();
-			AutoDeposit();
-
+			//AutoDeposit();
+			std::cout<< "running right code"<<std::endl;
 		}
 		else
 		{
 			lightBG.Set(Relay::kOff);
 			lightR.Set(Relay::kOff);
 			AutoMid();
-			AutoDeposit();
+			//AutoDeposit();
 		}
 
-
 	}
-
 
 	void SetEncoders()
 	{
@@ -456,30 +489,6 @@ public:
 			lightR.Set(Relay::kOn);
 
 		}
-//		else if ((switch1status == 1)||(switch2status == 1))
-//		{
-//			std::cout<<"one pressed"<<std::endl;
-//			Wait(0.1);
-//			if (lightTimer <= 8000)
-//			{
-//				lightTimer = lightTimer + 1;
-//				//std::cout << lightTimer <<std::endl;
-//				lightBG.Set(Relay::kOn);
-//				//Wait(0.1);
-//			}
-//			else if (lightTimer <= 16000 && lightTimer >= 8000)
-//			{
-//				lightBG.Set(Relay::kOff);
-//				lightTimer = lightTimer + 1;
-//				//std::cout<< lightTimer <<std::endl;
-//				//Wait (0.1);
-//			}
-//			else
-//			{
-//				lightTimer = 0;
-//			}
-//
-//		}
 
 		else
 		{
@@ -583,7 +592,6 @@ public:
 		{
 			//down button on DPad
 			downpressed = true;
-
 			//if it's too fast, reduce the step from 10 to like.. 1 or something lol
 		}
 		else
@@ -613,7 +621,6 @@ public:
 		//Claw intake is controlled by triggers on gamepad 2
 		double LTrigger2 = stick2.GetRawAxis(3);
 		double RTrigger2= stick2.GetRawAxis(2);
-		//CHANGE TO BUTTONS 7 ND 8
 
 		if (RTrigger2 >= 0.2)
 		{
@@ -656,18 +663,7 @@ public:
 			Lift1.Set(ControlMode::PercentOutput, 0);
 			Lift2.Set(ControlMode::PercentOutput, 0);
 		}
-//		if (LStick2 >= 0.05 || LStick2 <= -0.05)
-//		{
-//			Arm1.Set(ControlMode::PercentOutput, LStick2);
-//			Arm2.Set(ControlMode::PercentOutput, LStick2);
-//			//std::cout<< "arm time"<<std::endl;
-//		}
-//		else //If inside deadzone set motors to 0
-//		{
-//			Arm1.Set(ControlMode::PercentOutput, 0);
-//			Arm2.Set(ControlMode::PercentOutput, 0);
 
-//		}
 		if (stick2.GetRawButton(1))
 		{
 			//armPower = 0.5;
@@ -693,7 +689,7 @@ public:
 			hang2->Set(true);
 		}
 		//optical sensor mode
-//		if (stick2.GetRawButton(3) && positionNumber <2)
+//		if (stick2.GetRawButton(3) && positionNumber < 2)
 //		{
 //			button3Pressed = true;
 //
@@ -719,8 +715,7 @@ public:
 //			armPower = 0;
 //			Arm1.Set(ControlMode::PercentOutput, armPower);
 //			Arm2.Set(ControlMode::PercentOutput, armPower);
-//			pivotingF = false;
-//			fff
+//			pivotingF = false;+
 //			tapeTimer = 0;
 //		}
 //		else if (pivotingF == true)
@@ -788,7 +783,7 @@ public:
 	void runMotor(int button, TalonSRX& motor)
 	{
 
-		if (stick1.GetRawButton(button) == 1) //1 = True, so == 1 is not needed -Shane
+		if (stick1.GetRawButton(button))
 		{
 			motor.Set(ControlMode::PercentOutput, percentOutput);
 			std::cout << "Right: " << motor.GetSelectedSensorPosition(0) << std::endl;
@@ -835,7 +830,7 @@ public:
 				{
 					lightBG.Set(Relay::kOn);
 					lightR.Set(Relay::kOff);
-					Wait(0.1);
+//					Wait(0.1);
 					//LBack.Set(ControlMode::PercentOutput, 0.3);
 					if(stick1.GetRawButton(5) && stick1.GetRawButton(6) && stick1.GetRawButton(7) && stick1.GetRawButton(8))
 					{
@@ -895,7 +890,7 @@ public:
 						{
 							uppressed = false;
 							percentOutput = percentOutput + 0.10;
-							std::cout<< percentOutput<<std::endl;
+//							std::cout<< percentOutput<<std::endl;
 							if (percentOutput > 1.00)
 							{
 								percentOutput = 1.00;
@@ -931,25 +926,39 @@ public:
 					{
 						claw->Set(DoubleSolenoid::Value::kReverse);
 						claw2->Set(DoubleSolenoid::Value::kReverse);
-						//make this really hard for evan takushi
 
 					}
 
+					if (stick1.GetRawButton(7)==1)
+					{
+						RMiddle.Set(ControlMode::PercentOutput, 1);
+						RBack.Set(ControlMode::PercentOutput, 1);
+
+					}
+					else if (stick1.GetRawButton(8)==1)
+					{
+						RMiddle.Set(ControlMode::PercentOutput, -1);
+						RBack.Set(ControlMode::PercentOutput, -1);
+					}
+					else
+					{
+						RMiddle.Set(ControlMode::PercentOutput, 0);
+						RBack.Set(ControlMode::PercentOutput, 0);
+					}
 					runMotor(1,  LFront);
-					runMotor(2,  LMiddle);
+					//runMotor(2,  LMiddle);
 					runMotor(3,  LBack);
 					runMotor(4,  RFront);
-					runMotor(5,  RMiddle);
-					runMotor(6,  RBack);
-					runMotor(7,  Arm1);
-					runMotor(8,  Arm2);
+					//runMotor(5,  RMiddle);
+					//runMotor(6,  RBack);
+					//runMotor(7,  Arm1);
+					//runMotor(8,  Arm2);
 					runMotor(9,  Lift1);
 					runMotor(10, Lift2);
 				}
+
 		}
 	}
-
-
 
 };
 
